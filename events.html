@@ -1,0 +1,1075 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Events | VISAGES '26</title>
+    
+    <script>
+        const allowedDomains = ["visages26.web.app", "localhost", "127.0.0.1", "visages-2026.netlify.app"];
+        if (!allowedDomains.includes(window.location.hostname) && window.location.protocol !== 'file:') {
+            console.warn("Running on unauthorized domain.");
+        }
+    </script>
+
+    <style>
+        /* --- 1. FONTS & RESET --- */
+        @font-face {
+            font-family: 'Arsenia';
+            src: url('Arsenia.otf') format('opentype'), url('Arsenia.ttf') format('truetype');
+            font-weight: normal;
+        }
+
+        :root {
+            --bg-dark: #1a0b2e;
+            --primary: #FFD700;       /* Gold */
+            --accent: #FCA311;
+            --text-main: #ffffff;
+            --glass: rgba(255, 255, 255, 0.05);
+            --border: rgba(255, 215, 0, 0.3);
+            --main-font: 'Arsenia', serif;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        /* CRITICAL FIX: Transparent body/html so video shows through */
+        html, body {
+            width: 100%;
+            min-height: 100vh;
+            background-color: transparent; 
+            overflow-x: hidden;
+        }
+
+        body { 
+            font-family: var(--main-font); 
+            color: var(--text-main); 
+        }
+
+        /* --- VIDEO BACKGROUND --- */
+        #bg-video {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover; /* Ensures video fills screen without stretching */
+            z-index: -100; /* Puts it behind everything */
+            filter: brightness(0.4); /* Darkens video so text is readable */
+        }
+
+        /* --- LOADER: GEOMETRIC SLICE (IMPORTED FROM HOME) --- */
+        #loader-wrapper {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 10000; pointer-events: none; display: flex;
+        }
+        .loader-slice {
+            width: 20%; height: 100%; background: #05020a;
+            position: relative; z-index: 2;
+            border-right: 1px solid rgba(255,255,255,0.05);
+            transition: transform 1s cubic-bezier(0.8, 0, 0.2, 1);
+        }
+        .loader-slice:last-child { border-right: none; }
+        .loader-content-layer {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 3; display: flex; flex-direction: column; justify-content: center; align-items: center;
+            transition: opacity 0.5s ease;
+        }
+        .loader-title {
+            font-size: 5rem; color: transparent; -webkit-text-stroke: 1px rgba(255,255,255,0.3);
+            position: relative; margin-bottom: 20px; letter-spacing: 5px;
+        }
+        .loader-title::before {
+            content: 'VISAGES'; position: absolute; top: 0; left: 0; width: 0%; height: 100%;
+            color: var(--primary); overflow: hidden; border-right: 2px solid var(--primary);
+            animation: textFill 2.5s linear forwards; white-space: nowrap;
+        }
+        .loader-stats { font-family: 'Courier New', monospace; font-size: 0.9rem; color: var(--accent); display: flex; gap: 40px; text-transform: uppercase; letter-spacing: 2px; }
+        .system-check { text-align: left; margin-top: 30px; font-family: monospace; color: #555; font-size: 0.8rem; }
+        .check-item { opacity: 0; transform: translateY(10px); animation: fadeInUp 0.2s forwards; }
+        .check-item.done { color: var(--primary); }
+        .check-item::before { content: '[ ] '; }
+        .check-item.done::before { content: '[✓] '; }
+        
+        /* Loader Exit Animation Classes */
+        body.loaded .loader-content-layer { opacity: 0; }
+        body.loaded .loader-slice:nth-child(odd) { transform: translateY(-100%); }
+        body.loaded .loader-slice:nth-child(even) { transform: translateY(100%); }
+        @keyframes textFill { 0% { width: 0%; } 100% { width: 100%; } }
+        @keyframes fadeInUp { to { opacity: 1; transform: translateY(0); } }
+
+
+        /* --- 2. HEADER (MASSIVE LOGO) --- */
+        header {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 50px 20px 30px;
+            text-align: center;
+            position: relative;
+            z-index: 10;
+        }
+
+        .header-logo {
+            height: 280px; 
+            width: auto;
+            margin-bottom: 20px;
+            filter: drop-shadow(0 0 25px rgb(255, 255, 255));
+            animation: float 4s ease-in-out infinite;
+            cursor: pointer; /* Added pointer */
+        }
+
+        /* REPLACED TEXT TITLE CSS WITH LOGO CSS */
+        .brand-logo {
+            height: 380px; 
+            width: auto;
+            margin-top: -150px;
+            filter: drop-shadow(0 0 20px rgba(255, 215, 0, 0.4));
+            transition: transform 0.3s ease;
+            cursor: pointer;
+        }
+        .brand-logo:hover {
+            transform: scale(1.05);
+            filter: drop-shadow(0 0 30px rgba(255, 215, 0, 0.8));
+        }
+
+        .back-link {
+            position: absolute; top: 40px; left: 40px;
+            color: var(--text-main); text-decoration: none;
+            font-size: 1.4rem; opacity: 0.7; transition: 0.3s;
+            border: 1px solid var(--border); padding: 5px 15px; border-radius: 30px;
+        }
+        .back-link:hover { opacity: 1; color: var(--primary); border-color: var(--primary); background: rgba(0,0,0,0.5); }
+
+        /* --- 3. STICKY NAV DOCK --- */
+        .nav-dock-wrapper {
+            position: sticky; top: 20px; z-index: 100;
+            display: flex; justify-content: center;
+            margin-bottom: 60px;
+            padding: 0 20px;
+        }
+
+        .nav-dock {
+            background: rgba(13, 5, 24, 0.85);
+            backdrop-filter: blur(15px);
+            border: 1px solid var(--border);
+            padding: 12px 30px;
+            border-radius: 50px;
+            display: flex;
+            gap: 25px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+        }
+
+        .nav-item {
+            color: #ccc; text-decoration: none; font-size: 1.3rem;
+            padding: 8px 15px; border-radius: 20px; transition: 0.3s;
+            cursor: pointer; position: relative;
+        }
+        .nav-item:hover, .nav-item.active { color: var(--primary); background: rgba(255,215,0,0.15); text-shadow: 0 0 10px var(--primary); }
+
+        /* --- CONTINGENT BOX --- */
+        .contingent-wrapper {
+            max-width: 1000px; margin: 0 auto 80px; padding: 0 20px;
+        }
+        .contingent-card {
+            background: linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(0,0,0,0.6));
+            border: 2px solid var(--primary);
+            border-radius: 20px;
+            padding: 40px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 0 50px rgba(255, 215, 0, 0.15);
+        }
+        .contingent-card::before {
+            content: 'PREMIUM'; position: absolute; top: 30px; right: -40px;
+            background: var(--primary); color: black; padding: 5px 50px;
+            transform: rotate(45deg); font-weight: bold; font-size: 1rem;
+            box-shadow: 0 5px 10px rgba(0,0,0,0.5);
+        }
+        .cont-title { font-size: 3rem; color: var(--primary); margin-bottom: 10px; line-height: 1; text-shadow: 0 0 20px rgba(255, 215, 0, 0.3); }
+        .cont-price { font-size: 4rem; color: white; font-weight: bold; margin-bottom: 20px; text-shadow: 0 0 30px var(--primary); }
+        .cont-price-secondary { font-size: 2.5rem; color: white; margin-bottom: 20px; }
+        .cont-desc { font-size: 1.3rem; color: #ddd; margin-bottom: 30px; max-width: 700px; margin-left: auto; margin-right: auto; line-height: 1.5; }
+        
+        .cont-features { display: flex; justify-content: center; gap: 20px; flex-wrap: wrap; margin-bottom: 30px; }
+        .cont-badge {
+            background: rgba(255, 215, 0, 0.1); border: 1px solid var(--primary);
+            color: var(--primary); padding: 10px 25px; border-radius: 50px; font-size: 1.2rem;
+        }
+        
+        .cont-btn {
+            background: var(--primary); color: black; padding: 18px 60px;
+            font-size: 1.6rem; border: none; border-radius: 50px; cursor: pointer;
+            font-weight: bold; transition: 0.3s; font-family: var(--main-font);
+        }
+        .cont-btn:hover { transform: scale(1.05); box-shadow: 0 0 40px var(--primary); background: white; }
+        .cont-note { display: block; color: #f8bf05; font-size: 1.5rem; margin-top: 15px; font-style: italic; }
+
+        /* --- 4. MAIN LAYOUT --- */
+        .main-container { max-width: 1400px; margin: 0 auto; padding: 0 5% 100px; }
+
+        .category-section { margin-bottom: 100px; scroll-margin-top: 140px; }
+        
+        .cat-title {
+            font-size: 3.5rem; color: var(--primary); margin-bottom: 40px;
+            border-bottom: 1px solid var(--border); display: inline-block; padding-bottom: 5px;
+            text-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+        }
+
+        /* --- 5. TICKET CARDS --- */
+        .ticket-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 50px; }
+
+        .ticket {
+            background: linear-gradient(145deg, rgba(24, 24, 24, 0.8), rgba(11, 11, 11, 0.9)); /* Added Transparency */
+            backdrop-filter: blur(5px);
+            border: 1px solid var(--border); border-radius: 18px;
+            position: relative; overflow: hidden; cursor: pointer;
+            transition: 0.4s ease;
+            box-shadow: 0 15px 30px rgba(0,0,0,0.4);
+            z-index: 2;
+        }
+        .ticket:hover { transform: translateY(-12px) scale(1.03); border-color: var(--primary); box-shadow: 0 0 40px rgba(255, 215, 0, 0.2); }
+        
+        /* Holographic Shine */
+        .ticket::after {
+            content: ''; position: absolute; top: 0; left: -150%; width: 100%; height: 100%;
+            background: linear-gradient(to right, transparent, rgba(255,255,255,0.08), transparent);
+            transform: skewX(-25deg); transition: 0.6s;
+        }
+        .ticket:hover::after { left: 150%; }
+
+        .ticket-stub {
+            background: rgba(8, 8, 8, 0.9); padding: 15px 20px; border-bottom: 2px dashed var(--border);
+            display: flex; justify-content: space-between; align-items: center; position: relative;
+        }
+        /* Perforation Circles */
+        .ticket-stub::before, .ticket-stub::after {
+            content: ''; position: absolute; bottom: -12px; width: 24px; height: 24px;
+            background: #25163a; /* Match approx background */
+            border-radius: 50%; border: 1px solid var(--border); z-index: 2;
+        }
+        .ticket-stub::before { left: -14px; } .ticket-stub::after { right: -14px; }
+
+        .ticket-body { padding: 30px 25px; text-align: center; }
+        .t-title { font-size: 2rem; color: white; margin-bottom: 12px; line-height: 1.1; }
+        .t-meta { color: var(--accent); font-size: 1.2rem; display: flex; gap: 15px; justify-content: center; }
+        .view-btn { border: 1px solid var(--border); color: #888; padding: 6px 18px; border-radius: 20px; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px; }
+
+        /* --- 6. MODAL --- */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.95); z-index: 2000;
+            display: none; justify-content: center; align-items: center;
+        }
+        .modal-card {
+            background: #111; width: 90%; max-width: 750px; max-height: 85vh;
+            border: 1px solid var(--primary); display: flex; flex-direction: column;
+            box-shadow: 0 0 60px rgba(255, 215, 0, 0.25); animation: popIn 0.3s ease;
+            border-radius: 10px;
+        }
+        .modal-header { padding: 30px; background: rgba(255,215,0,0.08); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+        .modal-title { font-size: 2.8rem; color: var(--primary); margin: 0; }
+        .modal-body { padding: 40px; overflow-y: auto; }
+        
+        .info-row { display: flex; justify-content: space-between; margin-bottom: 30px; border-bottom: 1px solid #333; padding-bottom: 20px; }
+        .info-col h5 { color: #777; font-size: 1rem; margin-bottom: 8px; letter-spacing: 1px; }
+        .info-col p { color: white; font-size: 1.5rem; }
+
+        .rules-box { background: rgba(255,255,255,0.03); padding: 25px; border-radius: 10px; border-left: 4px solid var(--primary); }
+        .rules-list { list-style: none; padding-left: 5px; }
+        .rules-list li { margin-bottom: 12px; color: #ddd; font-size: 1.2rem; line-height: 1.6; position: relative; padding-left: 25px; text-align: left; }
+        .rules-list li::before { content: '►'; color: var(--accent); position: absolute; left: 0; font-size: 0.9rem; top: 6px; }
+
+        .modal-footer { padding: 25px; border-top: 1px solid var(--border); display: flex; gap: 20px; background: #0a0a0a; }
+        .action-btn { flex: 1; padding: 18px; border: none; font-size: 1.3rem; cursor: pointer; font-family: var(--main-font); transition: 0.3s; border-radius: 8px; }
+        .btn-close { background: transparent; color: #aaa; border: 1px solid #444; }
+        .btn-close:hover { border-color: white; color: white; }
+        .btn-reg { background: var(--primary); color: black; font-weight: bold; }
+        .btn-reg:hover { background: white; box-shadow: 0 0 20px var(--primary); }
+
+        /* --- 7. CHEER SQUAD --- */
+        #cheersquad { display: flex; justify-content: center; align-items: center; text-align: center; margin-top: 80px; padding-bottom: 80px; }
+        .centered-box {
+            background: rgba(0,0,0,0.6); padding: 50px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); 
+            text-align: center; backdrop-filter: blur(5px); margin: 0 auto; max-width: 800px; width: 100%;
+            display: flex; flex-direction: column; align-items: center;
+        }
+        .reg-btn-large { display: inline-block; padding: 20px 60px; background: var(--primary); color: black; font-size: 2rem; text-decoration: none; border-radius: 15px; margin-top: 20px; transition: 0.3s; font-weight: bold; }
+        .reg-btn-large:hover { transform: scale(1.05); background: white; box-shadow: 0 0 30px var(--primary); }
+        
+        /* --- UTILS --- */
+        .floating-guidelines { position: fixed; bottom: 30px; right: 30px; background: var(--accent); color: black; padding: 15px 30px; border-radius: 50px; font-size: 1.2rem; cursor: pointer; z-index: 999; animation: pulse 2s infinite; }
+        
+        /* FLOATING BROCHURE BUTTON */
+        .floating-brochure {
+            position: fixed;
+            bottom: 95px; /* Positioned directly above guidelines */
+            right: 30px;
+            background: var(--accent); /* Same color as guidelines */
+            color: black;
+            padding: 15px 30px;
+            border-radius: 50px;
+            font-size: 1.2rem;
+            cursor: pointer;
+            z-index: 999;
+            animation: pulse 2s infinite;
+            text-decoration: none; /* For anchor tag */
+            display: inline-block;
+        }
+        .floating-brochure:hover {
+            transform: scale(1.05);
+            background: white;
+            box-shadow: 0 0 20px var(--primary);
+        }
+
+        .cursor-dot { width: 8px; height: 8px; background-color: var(--primary); position: fixed; z-index: 9999; border-radius: 50%; pointer-events: none; }
+        .cursor-outline { width: 40px; height: 40px; border: 1px solid var(--primary); position: fixed; z-index: 9999; border-radius: 50%; pointer-events: none; transition: 0.15s; }
+        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-20px); } }
+        @keyframes pulse { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; text-shadow: 0 0 20px var(--primary); } }
+
+        /* --- MODALS --- */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 2000; display: none; justify-content: center; align-items: center; }
+        .modal-content { background: #111; width: 90%; max-width: 800px; border: 2px solid var(--primary); border-radius: 20px; padding: 40px; position: relative; max-height: 90vh; overflow-y: auto; }
+        .close-btn { position: absolute; top: 20px; right: 30px; font-size: 2.5rem; color: white; cursor: pointer; line-height: 0.5; }
+        .combo-card { background: linear-gradient(135deg, #222, #000); border: 1px solid var(--primary); padding: 20px; border-radius: 15px; text-align: center; margin-bottom: 20px; }
+
+        .guidelines-box { text-align: left; margin-bottom: 20px; }
+        .guidelines-box h3 { color: var(--accent); margin-bottom: 10px; font-size: 1.5rem; border-bottom: 1px solid #333; padding-bottom: 5px; }
+        .guidelines-box ul { padding-left: 20px; list-style: none; }
+        .guidelines-box ul li { margin-bottom: 8px; font-size: 1.1rem; color: #ddd; position: relative; }
+        .guidelines-box ul li::before { content: "➤"; color: var(--primary); position: absolute; left: -20px; }
+        .important-notice { background: rgba(255,0,0,0.1); border: 1px solid red; padding: 15px; border-radius: 10px; margin-bottom: 20px; text-align: center; }
+        .important-notice h3 { color: red; margin-bottom: 5px; }
+
+        /* --- FOOTER --- */
+        footer { background: rgba(0,0,0,0.9); padding: 60px 8%; margin-top: 50px; border-top: 1px solid var(--primary); text-align: center; width: 100%; }
+        .footer-content { display: flex; flex-wrap: wrap; justify-content: space-around; gap: 40px; margin-bottom: 40px; text-align: left; }
+        .footer-section h4 { color: var(--primary); font-size: 1.8rem; margin-bottom: 15px; border-bottom: 1px solid var(--accent); display: inline-block; padding-bottom: 5px; }
+        .footer-section p { font-size: 1.2rem; color: #ccc; margin-bottom: 8px; line-height: 1.6; }
+        .footer-section a { color: var(--accent); text-decoration: none; }
+        .credits { border-top: 1px solid #333; padding-top: 20px; font-size: 1rem; color: #555; }
+
+        /* --- MOBILE VIEW --- */
+        @media (max-width: 768px) {
+            .back-link { top: 20px; left: 20px; font-size: 1rem; padding: 4px 10px; }
+            .header-logo { height: 130px; }
+            .brand-logo { height: 130px; margin-top: -20px; }
+            
+            .nav-dock-wrapper { top: 10px; }
+            .nav-dock { padding: 8px 15px; gap: 10px; overflow-x: auto; justify-content: flex-start; max-width: 95vw; }
+            .nav-item { font-size: 0.9rem; padding: 6px 10px; white-space: nowrap; }
+            
+            .cont-title { font-size: 1.8rem; }
+            .cont-price { font-size: 2.5rem; }
+            .cont-desc { font-size: 1rem; }
+            .cont-btn { font-size: 1.2rem; padding: 14px 30px; width: 100%; }
+            .cont-badge { font-size: 0.9rem; padding: 6px 15px; }
+            .cont-note { font-size: 0.9rem; }
+            
+            .cat-title { font-size: 2rem; margin-bottom: 25px; }
+            .ticket-grid { grid-template-columns: 1fr; gap: 30px; }
+            .ticket-body { padding: 20px 15px; }
+            .t-title { font-size: 1.5rem; }
+            
+            .modal-title { font-size: 1.8rem; }
+            .modal-body { padding: 20px; }
+            .info-row { flex-wrap: wrap; gap: 15px; }
+            .info-col p { font-size: 1.1rem; }
+            .rules-list li { font-size: 1rem; }
+            .action-btn { font-size: 1rem; padding: 12px; }
+            
+            .floating-guidelines, .floating-brochure { right: 15px; padding: 10px 20px; font-size: 1rem; }
+            .floating-brochure { bottom: 85px; }
+            .floating-guidelines { bottom: 25px; }
+            
+            .centered-box { padding: 30px 15px; }
+            .reg-btn-large { font-size: 1.4rem; padding: 15px 30px; width: 100%; }
+            
+            footer { padding: 40px 20px; }
+            .footer-content { flex-direction: column; text-align: center; }
+            .footer-section { text-align: center; }
+            
+            /* Hide custom cursor on mobile */
+            .cursor-dot, .cursor-outline { display: none; }
+            * { cursor: auto; }
+        }
+    </style>
+</head>
+<body>
+
+    <video autoplay muted loop playsinline id="bg-video">
+        <source src="background.mp4" type="video/mp4">
+        Your browser does not support the video tag.
+    </video>
+
+    <div id="loader-wrapper">
+        <div class="loader-slice"></div>
+        <div class="loader-slice"></div>
+        <div class="loader-slice"></div>
+        <div class="loader-slice"></div>
+        <div class="loader-slice"></div>
+        <div class="loader-content-layer">
+            <h1 class="loader-title">VISAGES</h1>
+            <div class="loader-stats">
+                <span>SYSTEM</span>
+                <span class="loader-counter">00</span>%
+                <span>CHECK</span>
+            </div>
+            <div class="system-check">
+                <div class="check-item" style="animation-delay: 0.5s">LOADING ASSETS...</div>
+                <div class="check-item" style="animation-delay: 1.0s">INITIALIZING CORE...</div>
+                <div class="check-item" style="animation-delay: 1.5s">ESTABLISHING CONNECTION...</div>
+                <div class="check-item" style="animation-delay: 2.0s">WELCOME TO BENGALURU...</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="noise-overlay"></div>
+
+    <div class="cursor-dot"></div>
+    <div class="cursor-outline"></div>
+
+    <header>
+        <a href="index.html" class="back-link">← Home</a>
+        
+        <a href="https://www.sju.edu.in/" target="_blank">
+            <img src="university-logo.png" alt="University Logo" class="header-logo">
+        </a>
+        
+        <a href="https://www.instagram.com/visages.sju?igsh=MWVueWkxZmZiM3M5NA==" target="_blank">
+            <img src="visages-logo.png" alt="Visages Main Logo" class="brand-logo">
+        </a>
+    </header>
+
+    <div class="nav-dock-wrapper">
+        <nav class="nav-dock">
+            <a onclick="scrollToSection('star5')" class="nav-item">5-Star</a>
+            <a onclick="scrollToSection('star4')" class="nav-item">4-Star</a>
+            <a onclick="scrollToSection('star3')" class="nav-item">3-Star</a>
+            <a onclick="scrollToSection('star2')" class="nav-item">2-Star</a>
+            <a onclick="scrollToSection('open')" class="nav-item">Open Events</a>
+        </nav>
+    </div>
+
+    <div class="contingent-wrapper">
+        <div class="contingent-card">
+            <h2 class="cont-title">Contingent Package</h2>
+            <div class="cont-price">₹16,500</div>
+            <p class="cont-desc">Each university is permitted to field one team per event.<br>Eligibility for the Overall Championship is reserved exclusively for contingent registrations.</p>
+            
+            <div class="cont-features">
+                <div class="cont-badge">One Team Per Event</div>
+                <div class="cont-badge">Overall Prize Eligible</div>
+                <div class="cont-badge">All Events Access</div>
+            </div>
+            
+            <button class="cont-btn" onclick="openReg('events')">REGISTER CONTINGENT</button>
+            <span class="cont-note">Open events require separate registration</span>
+        </div>
+    </div>
+
+    <div class="main-container">
+        
+        <div id="star5" class="category-section">
+            <h2 class="cat-title">5-Star Events ★★★★★</h2>
+            <div class="ticket-grid" id="grid-5star"></div>
+        </div>
+
+        <div id="star4" class="category-section">
+            <h2 class="cat-title">4-Star Events ★★★★</h2>
+            <div class="ticket-grid" id="grid-4star"></div>
+        </div>
+
+        <div id="star3" class="category-section">
+            <h2 class="cat-title">3-Star Events ★★★</h2>
+            <div class="ticket-grid" id="grid-3star"></div>
+        </div>
+
+        <div id="star2" class="category-section">
+            <h2 class="cat-title">2-Star Events ★★</h2>
+            <div class="ticket-grid" id="grid-2star"></div>
+        </div>
+
+        <div id="open" class="category-section">
+            <h2 class="cat-title">Open Events 🔓</h2>
+            <div class="ticket-grid" id="grid-open"></div>
+        </div>
+
+    </div>
+
+    <section id="cheersquad" class="container">
+        <div class="centered-box">
+            <h2 class="cont-title">Cheer Squad Registration</h2>
+            <p class="cont-desc">
+                Join the energy! Click below to register.
+            </p>
+            <a href="https://forms.gle/XtA2fZCYuj8bpk8G8" target="_blank" class="reg-btn-large">REGISTER NOW ➜</a>
+        </div>
+    </section>
+
+    <footer>
+        &copy; 2026 Visages | St Joseph's University
+    </footer>
+
+    <div class="modal-overlay" id="eventModal">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h2 class="modal-title" id="modalTitle">Event Name</h2>
+                <div class="view-btn" style="background:rgba(255,255,255,0.1); color:white; border:none;">CONFIDENTIAL</div>
+            </div>
+            <div class="modal-body">
+                <div class="info-row">
+                    <div class="info-col"><h5>REGISTRATION FEE</h5><p id="modalFee">₹0</p></div>
+                    <div class="info-col"><h5>CAPACITY</h5><p id="modalCap">0</p></div>
+                    <div class="info-col"><h5>PRIZE POOL</h5><p id="modalPrize">₹0</p></div>
+                </div>
+                
+                <div style="margin-bottom: 20px; border-bottom: 1px solid #333; padding-bottom: 20px;">
+                    <h5 style="color:#777; font-size:1rem; margin-bottom:5px;">DESCRIPTION</h5>
+                    <p id="modalDesc" style="color:#ddd; font-size:1.3rem; font-style: italic;">No description available.</p>
+                </div>
+
+                <div style="margin-bottom: 30px; text-align: center; border-bottom: 1px solid #333; padding-bottom: 20px;">
+                    <h5 style="color:#777; font-size:1rem; margin-bottom:5px;">EVENT HEAD</h5>
+                    <p id="modalHead" style="color:var(--primary); font-size:1.6rem;">Name</p>
+                </div>
+                <div class="rules-box">
+                    <h4 style="color:white; margin-bottom:15px; font-size:1.4rem;">PROTOCOL / RULES</h4>
+                    <ul class="rules-list" id="modalRules"></ul>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="action-btn btn-close" onclick="closeModal()">CLOSE FILE</button>
+                <button class="action-btn btn-reg" onclick="openReg('events')">REGISTER NOW</button>
+            </div>
+        </div>
+    </div>
+
+    <a href="brochure.pdf" download class="floating-brochure">
+        📥 Brochure
+    </a>
+
+    <div class="floating-guidelines" onclick="document.getElementById('guidelinesModal').style.display='flex'">
+        📜 Guidelines
+    </div>
+
+    <div id="guidelinesModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="close-btn" onclick="this.parentElement.parentElement.style.display='none'">×</div>
+            <h2 style="color:var(--primary); font-size:2.5rem; margin-bottom:20px; text-align:center;">General Guidelines & Rules</h2>
+            <div style="overflow-y:auto; max-height:60vh; padding-right:10px;">
+                <div class="important-notice">
+                    <h3>⚠️ Important Notice for SJU Students</h3>
+                    <p style="color:white; font-size:1.1rem;">St Joseph's University students are not eligible to participate in any events except Futsal, Flashmob, Battle Of Bands & Western Street Battle. This includes both individual and contingent registrations.</p>
+                </div>
+                <div class="guidelines-box">
+                    <h3>General Rules</h3>
+                    <ul>
+                        <li>The contingent fee is Rs. 16,500/- (Includes one participant/team for all events, excluding open events).</li>
+                        <li>A college must participate as a contingent to be eligible for overalls.</li>
+                        <li>Last date for registration: 21st February 2026.</li>
+                        <li>On-spot registration: 8.30 am to 9.30 am.</li>
+                        <li>Valid college ID card is mandatory.</li>
+                        <li>Participants registering under non-contingent must pay the fee for their respective event.</li>
+                        <li>Participants are required to submit any audios a day prior via Google Forms.</li>
+                        <li>Backup of audio tracks is mandatory for performing participants.</li>
+                        <li>Timings will be informed by event heads in WhatsApp groups.</li>
+                        <li>Report 30 mins before event start.</li>
+                        <li>Judges' decision is final and binding.</li>
+                        <li>No refund once registration is done.</li>
+                    </ul>
+                </div>
+                <div class="guidelines-box">
+                    <h3>Prohibited Items</h3>
+                    <ul>
+                        <li>Illicit substances (alcohol, cigarettes, vapes, drugs).</li>
+                        <li>Edibles and beverages (including water).</li>
+                        <li>Sharp objects or weapons.</li>
+                        <li>Flammable objects (perfumes, sanitizers).</li>
+                        <li>Cosmetics (only allowed for dance/fashion).</li>
+                        <li>Medicines without prescription.</li>
+                    </ul>
+                </div>
+                <div class="guidelines-box">
+                    <h3>Dress Code</h3>
+                    <ul>
+                        <li><strong>Girls:</strong> No sleeveless, deep necks, sheer, off-shoulder, cropped tops, or ripped jeans. Nothing above the knee.</li>
+                        <li><strong>Boys:</strong> No sleeveless/tank tops. No shorts, 3/4th pants, or ripped jeans.</li>
+                    </ul>
+                </div>
+                <div class="guidelines-box">
+                    <h3>Code of Conduct</h3>
+                    <ul>
+                        <li>Zero-tolerance for vulgarity, misbehavior, or mention of sensitive topics (politics, religion, etc.).</li>
+                        <li>Zero-tolerance policy towards illicit substances.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="accModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="close-btn" onclick="this.parentElement.parentElement.style.display='none'">×</div>
+            <h2 style="color:var(--primary); font-size:2.5rem; margin-bottom:20px;">Accommodation</h2>
+            <p style="font-size:1.5rem; color:#ddd;">Accommodation is available for boys and girls.</p>
+            <p style="font-size:2.5rem; color:var(--primary); margin:20px 0;">Rate: ₹800 + gst per person/day</p>
+            <p style="font-size:1.5rem; color:#aaa;">Contact: Abhishek Patel (+91 96068 47887)</p>
+        </div>
+    </div>
+
+    <script>
+        // CONFIG - UPDATED LINKS
+        const links = {
+            proNight: "https://forms.gle/uXNUX7Aro8kLx5qg6",
+            events: "https://forms.gle/qFsbVUviHmojeYPq5"
+        };
+
+        function openReg(type) {
+            if(links[type]) {
+                window.open(links[type], '_blank');
+            }
+        }
+
+        // DATA OBJECT - Updated with descriptions
+        const events = {
+            '5star': [
+                { 
+                    title: 'Council Wars', 
+                    fee: '₹1000', 
+                    cap: '6-8 Members', 
+                    prize: '₹10,000', 
+                    head: 'Aishwarya: 9962522299, Suraj: 9742706684', 
+                    desc: 'Tests presence of mind, strategy, and teamwork in intense scenarios. Simulates real council challenges to forge future leaders.',
+                    rules: ['One team per college.', 'Only Council members allowed.', 'Rounds given on spot.', 'Props allowed.', 'No personal attacks.'] 
+                },
+                { 
+                    title: 'Indian Group Dance', 
+                    fee: '₹1500', 
+                    cap: '8-15 Members', 
+                    prize: '₹10,000', 
+                    head: 'Angelina: 8826916458, Mishael: 8590420262', 
+                    desc: 'Team performances across Indian dance forms. Celebrates culture through movement.',
+                    rules: ['Team Size: 8-15 participants', 'Time Limit: 5 minutes + 1 minute grace period.', 'Only Indian music and dance styles allowed.', 'No vulgarity in costume or music', 'Props allowed (non-hazardous)'] 
+                },
+                { 
+                    title: 'Western Group Dance', 
+                    fee: '₹1500', 
+                    cap: '7-12 Members', 
+                    prize: '₹10,000', 
+                    head: 'Rikzyal: 8918262983, Shreddha: 7994755751', 
+                    desc: 'High-energy global dance battles. Reflects youth and urban lifestyle.',
+                    rules: ['Team Members: 7-12 members', 'Time Limit: 3+2 minutes', 'Strictly western style.', 'University dress code strictly adhered to.', 'Usage of props is allowed.'] 
+                },
+                { 
+                    title: 'Indian Group Singing', 
+                    fee: '₹1000', 
+                    cap: '5-10 Members', 
+                    prize: '₹7,000', 
+                    head: 'Aashika: 7411437721, Sirikrishna: 9901549528', 
+                    desc: 'Groups perform Indian songs with harmony and coordination. Celebrates musical diversity and tradition.',
+                    rules: ['Time limit: 6+2 mins', 'All Indian languages allowed.', 'No Karaoke.', 'Instruments allowed (drum kit provided).'] 
+                },
+                { 
+                    title: 'Western Group Singing', 
+                    fee: '₹1000', 
+                    cap: '5-10 Members', 
+                    prize: '₹7,000', 
+                    head: 'Karin: 8147012753, Evan: 8904754808', 
+                    desc: 'Vocal groups perform global genres creatively. Mirrors Bengaluru’s cosmopolitan spirit.',
+                    rules: ['Time limit: 5+2 mins', 'No karaoke', 'Max 2 accompanying instruments', 'Original Compositions = brownie points'] 
+                },
+                { 
+                    title: 'Fashion Show', 
+                    fee: '₹1500', 
+                    cap: '8-10 Members', 
+                    prize: '₹10,000', 
+                    head: 'Joash: 8595852851, Adithya: 8660581242', 
+                    desc: 'Fashion of ethnic and modern fashion. Showcases style and confidence.',
+                    rules: ['Open theme', 'Time limit : 6+1', 'Strict Dress Code (No crop tops, sleeveless, ripped jeans).', 'Submit audio 2 days prior', 'No flammable props'] 
+                },
+                { 
+                    title: 'Personality', 
+                    fee: '₹600', 
+                    cap: 'Individual', 
+                    prize: '₹5,000', 
+                    head: 'Annebelle: 7349194261, Tom Abraham: 7411645087', 
+                    desc: 'Evaluates confidence and communication. Represents the modern Bengaluru individual.',
+                    rules: ['Individual Event', 'Round 1: Written', 'Props allowed for Round 2.', 'Strict dress code.'] 
+                },
+                { 
+                    title: 'Street Play', 
+                    fee: '₹800', 
+                    cap: '10+2 Members', 
+                    prize: '₹5,000', 
+                    head: 'Saqlain: 9741284869, Benny: 9844520704', 
+                    desc: 'Socially relevant theatre with impact. Promotes awareness and dialogue.',
+                    rules: ['No targeting government/religion.', 'Live sound only.', 'No vulgarity.', 'Maintain original spirit.'] 
+                },
+            ],
+            '4star': [
+                { 
+                    title: 'DJ Wars', 
+                    fee: '₹600', 
+                    cap: 'Individual', 
+                    prize: '₹3,000', 
+                    head: 'Reeta: 6363777450, Vikas: 8431618684', 
+                    desc: 'DJs battle with beats, drops, and crowd control. Reflects Bengaluru’s nightlife and tech-driven vibe.',
+                    rules: ['Bring own pendrive.', 'No profanity.', 'No pre-recorded sets.'] 
+                },
+                { 
+                    title: 'Aircrash', 
+                    fee: '₹500', 
+                    cap: 'Individual', 
+                    prize: '₹3,000', 
+                    head: 'Abhay: 9742987683, Akshitha: 6361781083', 
+                    desc: 'Crisis simulation testing leadership. Highlights teamwork under pressure.',
+                    rules: ['Characters assigned on spot.', 'No prior prep.', 'No vulgarity.'] 
+                },
+                { 
+                    title: 'Mad Ads', 
+                    fee: '₹800', 
+                    cap: '5+3 Members', 
+                    prize: '₹5,000', 
+                    head: 'Wesley: 7338555271, Anish: 9066268028', 
+                    desc: 'Creative and humorous ad performances. Showcases innovation and marketing skill.',
+                    rules: ['Time: 4+1 mins', 'Perform in English', 'One narrator mandatory', 'No vulgarity/targeting religion'] 
+                },
+                { 
+                    title: 'Mock Rock', 
+                    fee: '₹800', 
+                    cap: '6-8 Members', 
+                    prize: '₹5,000', 
+                    head: 'Neha: 9538596056, Gnana: 9448615863', 
+                    desc: 'Dramatic song enactments without singing. Focuses on expression and fun.',
+                    rules: ['Time: 4+2 mins', 'Any language audio', 'Judged on choreography & reaction.', 'No vulgarity'] 
+                },
+                { 
+                    title: 'Indian Solo Singing', 
+                    fee: '₹600', 
+                    cap: 'Individual', 
+                    prize: '₹3,000', 
+                    head: 'Riona: 7987973999, Ganga: 9778598896', 
+                    desc: 'Solo voices express emotion through Indian music. Celebrates individuality and soulful singing.',
+                    rules: ['Time limit 3+1 mins', 'No Karaoke.', 'Instruments allowed.'] 
+                },
+                { 
+                    title: 'Indian Classical Solo Singing', 
+                    fee: '₹600', 
+                    cap: 'Individual', 
+                    prize: '₹3,000', 
+                    head: 'Anagha: 9108220057, Shreya: 9383408356', 
+                    desc: 'A refined showcase of Indian classical mastery. Honors discipline and timeless tradition.',
+                    rules: ['Time: 7+1 mins.', 'Max 2 accompanists.', 'Pure Classical only.'] 
+                },
+                { 
+                    title: 'Western Solo Singing', 
+                    fee: '₹600', 
+                    cap: 'Individual', 
+                    prize: '₹3,000', 
+                    head: 'Rachel: 9980665044, Shivangi: 9101702550', 
+                    desc: 'Solo performances across global genres. Highlights confidence and vocal finesse.',
+                    rules: ['Time: 2+1 mins.', 'Backing tracks allowed (no vocals).', 'Instruments allowed.'] 
+                },
+                { 
+                    title: 'Western Solo Dance', 
+                    fee: '₹600', 
+                    cap: 'Individual', 
+                    prize: '₹3,000', 
+                    head: 'Sneha: 8597718623, Emmanuel: 6364138387', 
+                    desc: 'Freestyle and contemporary solo showcases. Captures bold and evolving expressions.',
+                    rules: ['Strictly western style.', 'University dress code.', 'No fire/liquids.'] 
+                },
+                { 
+                    title: 'Indian Solo Dance', 
+                    fee: '₹600', 
+                    cap: 'Individual', 
+                    prize: '₹3,000', 
+                    head: 'Gourika: 6268084849, Raveena: 9742952388', 
+                    desc: 'Solo performances rooted in Indian styles. Expresses tradition and personal artistry.',
+                    rules: ['Time: 4 mins', 'Classical/Folk/Semi-classical.', 'No fusion.', 'Strict dress code.', 'Submit track 24hrs prior.'] 
+                },
+            ],
+            '3star': [
+                { 
+                    title: 'Beatbox/Rap Battle', 
+                    fee: '₹400', 
+                    cap: 'Individual', 
+                    prize: '₹2,000', 
+                    head: 'Milind: 9148113503, Tinisha: 9916026060', 
+                    desc: 'A vocal percussion battle with street energy. Represents urban creativity and rhythm.',
+                    rules: ['No backing tracks.', 'No obscene content.'] 
+                },
+                { 
+                    title: 'Solo Instrumental', 
+                    fee: '₹400', 
+                    cap: 'Individual', 
+                    prize: '₹2,000', 
+                    head: 'Saira: 9036499222, Prateek: 7899830149', 
+                    desc: 'Instrumentalists convey melody without words. Celebrates skill and musical emotion.',
+                    rules: ['Time: 3+1 mins.', 'Bring own instrument.', 'Backing tracks allowed.'] 
+                },
+                { 
+                    title: 'Improv', 
+                    fee: '₹400', 
+                    cap: '2 Members', 
+                    prize: '₹2,000', 
+                    head: 'Adhitya: 6361302660, Akash: 7483673620', 
+                    desc: 'Unscripted performances driven by creativity. Tests spontaneity and teamwork.',
+                    rules: ['Time: 2+1 mins', 'Theme on spot.', 'No scripts.', 'No vulgarity.'] 
+                },
+                { 
+                    title: 'Stand Up Comedy', 
+                    fee: '₹400', 
+                    cap: 'Individual', 
+                    prize: '₹2,000', 
+                    head: 'Roshini: 9739242247, Alwin: 9986149499', 
+                    desc: 'Relatable humor and sharp satire. Reflects everyday Bengaluru life.',
+                    rules: ['Time: 3+1 mins.', 'No scripts.', 'No vulgarity.', 'Round 2: Surprise.'] 
+                },
+                { 
+                    title: 'Mono Acting', 
+                    fee: '₹400', 
+                    cap: 'Individual', 
+                    prize: '₹2,000', 
+                    head: 'Jeethya: 9986084781, Gowtham: 8050635141', 
+                    desc: 'Powerful solo dramatic performances. Celebrates storytelling depth.',
+                    rules: ['Time: 3+1 mins.', 'Perform alone.', 'Minimal props.'] 
+                },
+                { 
+                    title: 'Debate', 
+                    fee: '₹400', 
+                    cap: '2 Speakers', 
+                    prize: '₹2,000', 
+                    head: 'Aaryan: 7349022840, Adwitiyo: 9073977729', 
+                    desc: 'Logical debates on modern issues. Encourages critical thinking.',
+                    rules: ['3 mins per speaker.', 'English only.', 'No personal attacks.'] 
+                }
+            ],
+            '2star': [
+                { 
+                    title: 'Meme Making', 
+                    fee: '₹300', 
+                    cap: 'Individual', 
+                    prize: '₹1,500', 
+                    head: 'Allendon: 9880289887, Charles: 9538203989', 
+                    desc: 'Witty memes inspired by city life. Showcases digital humor.',
+                    rules: ['Round 1: Poster (30m)', 'Round 2: Video (60m)'] 
+                },
+                { 
+                    title: 'Murder Mystery', 
+                    fee: '₹500', 
+                    cap: '2-4 Members', 
+                    prize: '₹1,500', 
+                    head: 'Rhea: 8088916656, Mary: 9591076363', 
+                    desc: 'Teams solve a staged crime. Tests logic and teamwork.',
+                    rules: ['No phones/AI.', 'Respect actors.', 'Find murderer.'] 
+                },
+                { 
+                    title: 'Reel Making', 
+                    fee: '₹300', 
+                    cap: '2-3 Members', 
+                    prize: '₹1,500', 
+                    head: 'Eliezer: 8971141311, Abdul: 9606310241', 
+                    desc: 'Short videos capturing city essence. Blends storytelling and creativity.',
+                    rules: ['Shot in campus.', 'Max 60 secs.', 'Raw footage only.', 'Theme on spot.', '3 hours to edit.'] 
+                },
+                { 
+                    title: 'Face Painting', 
+                    fee: '₹300', 
+                    cap: '2 Members', 
+                    prize: '₹1,500', 
+                    head: 'Satya: 9980798052, Kalyani: 6282323174', 
+                    desc: 'Faces turned into artistic canvases. Represents creativity and diversity.',
+                    rules: ['60-90 mins.', 'Bring own paints.', 'Theme on spot.'] 
+                },
+                { 
+                    title: 'Photography', 
+                    fee: '₹300', 
+                    cap: 'Individual', 
+                    prize: '₹1,500', 
+                    head: 'Nidhi: 9495252242, Aditi: 8884831833', 
+                    desc: 'Single-frame city storytelling. Celebrates observation and emotion.',
+                    rules: ['Theme: Brand Edition.', 'Heavy editing permitted.'] 
+                },
+                { 
+                    title: 'IPL Auction', 
+                    fee: '₹300', 
+                    cap: '3 Members', 
+                    prize: '₹2,000', 
+                    head: 'Tarun: 7845687693, Aadithya: 8592061111', 
+                    desc: 'Strategic IPL auction simulation. Blends cricket and management.',
+                    rules: ['IPL rounds.', 'Dress code mandatory.'] 
+                },
+                { 
+                    title: 'Multilingual Quiz', 
+                    fee: '₹400', 
+                    cap: '3 Members', 
+                    prize: '₹1,500', 
+                    head: 'Durgadevi: 9042516781, Likhitha: 9945185359', 
+                    desc: 'Quiz across languages and culture. Celebrates multilingual identity.',
+                    rules: ['Language/Culture based.', 'Questions in English + local language.', 'No phones.'] 
+                },
+                { 
+                    title: 'Treasure Hunt', 
+                    fee: '₹600', 
+                    cap: '3 Members', 
+                    prize: '₹3,000', 
+                    head: 'Esha: 8296848235, Sania: 9747130127', 
+                    desc: 'Clue-based city adventure. Encourages exploration and teamwork.',
+                    rules: ['Hands tied together.', 'No phones/smartwatches.', 'Fastest team wins.'] 
+                },
+            ],
+            'open': [
+                { 
+                    title: 'Battle of Bands', 
+                    fee: '₹2000', 
+                    cap: '4-8 Members', 
+                    prize: '₹10,000', 
+                    head: 'Gregory: 9845389800, Meghana: 6364056622', 
+                    desc: 'A high-voltage clash of bands performing originals and covers. Celebrates Bengaluru’s live-music culture and raw energy.',
+                    rules: ['College ID mandatory.', 'Time: 10 mins (8 perf + 2 setup)', 'Only drum kits provided.', 'Growling allowed.', 'Originals encouraged.'] 
+                },
+                { 
+                    title: 'Futsal', 
+                    fee: '₹300', 
+                    cap: '3+1 Team', 
+                    prize: '₹4,000', 
+                    head: 'Bryan: 8861604003, Jason Vincent: 9353684624 ', 
+                    desc: 'Fast-paced football action. Reflects sporting passion.',
+                    rules: ['5 mins match.', 'Rolling subs.', 'No offsides.', 'No goalkeepers.'] 
+                },
+                { 
+                    title: 'Valorant', 
+                    fee: '₹700', 
+                    cap: '5+1 Team', 
+                    prize: '₹3,000', 
+                    head: 'Sthavar: 9844848480, Harshith: 7411029129', 
+                    desc: 'Competitive esports battles. Represents tech-driven gaming culture.',
+                    rules: ['PC Version.', 'Custom games.', 'Single elimination.', 'NOT Open to SJU Students.'] 
+                },
+                { 
+                    title: 'Street Dance Battle', 
+                    fee: '₹600', 
+                    cap: 'Individual', 
+                    prize: '₹10,000', 
+                    head: 'Shreddha: 7994755751, Shaurya: 7501599662', 
+                    desc: 'High-energy face-off showcasing hip-hop, popping, and breaking skills. Celebrates raw movement, confidence, and vibrant urban dance culture.',
+                    rules: [
+                        'Open for all participants.', 
+                        'Music played on spot.', 
+                        'Showcase round: 1 min per participant.', 
+                        'Top 16 chosen for 1v1 battles.', 
+                        'Battle rounds: 30-35 secs.', 
+                        'Open style battle.', 
+                        'University dress code mandatory.',
+                        'Judge’s decision is final.'
+                    ] 
+                },
+                { 
+                    title: 'Street Swag Bengaluru (Flashmob)', 
+                    fee: '₹1000', 
+                    cap: '15-35 Members', 
+                    prize: '₹5,000', 
+                    head: 'Maanya: 7907085079, Hithaishi: 8050038485', 
+                    desc: 'A vibrant fusion of humor, drama, and high-energy moves. Captures the youthful pulse and unstoppable spirit of Namma Bengaluru.',
+                    rules: [
+                        'Event Type: Group performance',
+                        'Time Cap: 5 + 3 minutes',
+                        'Zero Tolerance: No vulgarity in attire/performance.',
+                        'Judging: Creativity, coordination, crowd connect & dress code.',
+                        'Cheer Power: Cheer squad points add weight to score.',
+                        'Style Bonus: Points for coordinated outfits.',
+                        'Music: Upload to Drive 1 day prior.',
+                    ] 
+                }
+            ]
+        };
+
+        // RENDER LOGIC
+        function renderEvents() {
+            for (const [category, eventList] of Object.entries(events)) {
+                const container = document.getElementById(`grid-${category}`);
+                if (!container) continue;
+                
+                eventList.forEach(ev => {
+                    const ticket = document.createElement('div');
+                    ticket.className = 'ticket';
+                    ticket.onclick = () => openModal(ev);
+                    ticket.innerHTML = `
+                        <div class="ticket-stub">
+                            <span style="color:var(--primary); font-size:1.5rem;">★</span>
+                            <div class="view-btn">DETAILS</div>
+                        </div>
+                        <div class="ticket-body">
+                            <h3 class="t-title">${ev.title}</h3>
+                            <div class="t-meta">
+                                <span>${ev.fee}</span> | <span>${ev.cap}</span>
+                            </div>
+                        </div>
+                    `;
+                    container.appendChild(ticket);
+                });
+            }
+        }
+
+        // MODAL LOGIC
+        function openModal(data) {
+            document.getElementById('modalTitle').innerText = data.title;
+            document.getElementById('modalFee').innerText = data.fee;
+            document.getElementById('modalCap').innerText = data.cap;
+            document.getElementById('modalPrize').innerText = data.prize;
+            document.getElementById('modalHead').innerText = data.head;
+            
+            // NEW: Add description update
+            const descEl = document.getElementById('modalDesc');
+            if (descEl) {
+                descEl.innerText = data.desc || "No description available.";
+            }
+
+            const list = document.getElementById('modalRules');
+            list.innerHTML = '';
+            data.rules.forEach(r => {
+                const li = document.createElement('li');
+                li.innerText = r;
+                list.appendChild(li);
+            });
+            document.getElementById('eventModal').style.display = 'flex';
+        }
+
+        function closeModal() { document.getElementById('eventModal').style.display = 'none'; }
+
+        // SCROLL LOGIC
+        function scrollToSection(id) {
+            const el = document.getElementById(id);
+            if(el) {
+                const y = el.getBoundingClientRect().top + window.scrollY - 140; 
+                window.scrollTo({top: y, behavior: 'smooth'});
+            }
+        }
+
+        // LOADER LOGIC (Copied from Index)
+        let counter = 0;
+        const counterEl = document.querySelector('.loader-counter');
+        const interval = setInterval(() => {
+            counter += Math.floor(Math.random() * 5) + 1;
+            if (counter >= 100) {
+                counter = 100;
+                clearInterval(interval);
+                document.body.classList.add('loaded'); // This triggers the curtain reveal
+                
+                // Animate check items
+                const items = document.querySelectorAll('.check-item');
+                items.forEach((item, index) => {
+                    setTimeout(() => item.classList.add('done'), index * 300);
+                });
+            }
+            counterEl.innerText = counter < 10 ? '0' + counter : counter;
+        }, 50);
+
+        renderEvents();
+        window.onclick = function(e) { if(e.target == document.getElementById('eventModal')) closeModal(); }
+    </script>
+</body>
+</html>
